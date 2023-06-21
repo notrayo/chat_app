@@ -1,5 +1,8 @@
+import 'package:chat_app/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import './signup.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +20,46 @@ class _LoginScreenState extends State<LoginScreen> {
       height: 300,
       //color: Colors.black87,
     );
+  }
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  static Future<User?> loginUsingEmailPassword(
+      {required String email,
+      required String password,
+      required BuildContext context}) async {
+    FirebaseAuth auth = FirebaseAuth.instance;
+    User? user;
+    try {
+      UserCredential userCredential = await auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      user = userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == "user-not-found" || e.code == 'wrong-password') {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Invalid email or password'),
+                content:
+                    const Text('Please enter a valid email AND / OR password'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            });
+        throw Exception('Incorrect email or password');
+      } else {
+        rethrow;
+      }
+    }
+    return user;
   }
 
   @override
@@ -58,8 +101,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     autovalidateMode: AutovalidateMode.always,
                     child: Column(children: <Widget>[
                       TextFormField(
+                        controller: _emailController,
                         decoration: InputDecoration(
-                          hintText: 'Enter your email : ',
+                          hintText: 'Enter your valid email address: ',
                           prefixIcon: const Icon(Icons.email),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(20),
@@ -84,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       TextFormField(
                         obscureText: true,
+                        controller: _passwordController,
                         decoration: InputDecoration(
                           hintText: 'Enter Password',
                           prefixIcon: const Icon(Icons.lock),
@@ -107,7 +152,39 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 35,
                       ),
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () async {
+                          try {
+                            User? user = await loginUsingEmailPassword(
+                                email: _emailController.text,
+                                password: _passwordController.text,
+                                context: context);
+                            print(user);
+                            if (user != null) {
+                              Navigator.pushNamed(context, '/');
+                              //new screen (home screen)
+                            }
+                          } catch (e) {
+                            showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title:
+                                        const Text('Invalid email or password'),
+                                    content: const Text(
+                                        'Please enter a valid email AND / OR password'),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        child: const Text('OK'),
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                });
+                            print(e);
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
@@ -133,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
-                                          const SignupScreeb()));
+                                          const SignupScreen()));
                             },
                             child: const Text(
                               'Sign Up Here',
